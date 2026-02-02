@@ -12,6 +12,7 @@ import androidx.annotation.RestrictTo;
 import androidx.annotation.VisibleForTesting;
 import androidx.media3.common.MediaItem;
 import androidx.media3.common.util.UnstableApi;
+import androidx.media3.exoplayer.DefaultRenderersFactory;
 import androidx.media3.exoplayer.ExoPlayer;
 import io.flutter.plugins.videoplayer.ExoPlayerEventListener;
 import io.flutter.plugins.videoplayer.VideoAsset;
@@ -55,10 +56,12 @@ public final class TextureVideoPlayer extends VideoPlayer implements SurfaceProd
         asset.getMediaItem(),
         options,
         () -> {
+          DefaultRenderersFactory renderersFactory =
+              new DefaultRenderersFactory(context).setEnableDecoderFallback(true);
           androidx.media3.exoplayer.trackselection.DefaultTrackSelector trackSelector =
               new androidx.media3.exoplayer.trackselection.DefaultTrackSelector(context);
           ExoPlayer.Builder builder =
-              new ExoPlayer.Builder(context)
+              new ExoPlayer.Builder(context, renderersFactory)
                   .setTrackSelector(trackSelector)
                   .setMediaSourceFactory(asset.getMediaSourceFactory(context));
           return builder.build();
