@@ -51,6 +51,7 @@ android {
     }
 
     dependencies {
+        // TODO: Update to 1.9.1 when it is released.
         def exoplayer_version = "1.8.0"
         implementation("androidx.media3:media3-exoplayer:${exoplayer_version}")
         implementation("androidx.media3:media3-exoplayer-hls:${exoplayer_version}")
