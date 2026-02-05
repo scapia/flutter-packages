@@ -59,7 +59,7 @@ public class PlatformViewVideoPlayer extends VideoPlayer {
         () -> {
           // DefaultRenderersFactory renderersFactory =
           //     new DefaultRenderersFactory(context).setEnableDecoderFallback(true);
-              new DefaultRenderersFactory(context).setEnableDecoderFallback(true);
+             
           androidx.media3.exoplayer.trackselection.DefaultTrackSelector trackSelector =
               new androidx.media3.exoplayer.trackselection.DefaultTrackSelector(context);
           ExoPlayer.Builder builder =
