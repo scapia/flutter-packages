@@ -34,9 +34,6 @@ public abstract class VideoPlayer implements VideoPlayerInstanceApi {
   @Nullable protected final SurfaceProducer surfaceProducer;
   @Nullable private DisposeHandler disposeHandler;
   @NonNull protected ExoPlayer exoPlayer;
-  @NonNull private final MediaItem mediaItem;
-  @NonNull private final VideoPlayerOptions options;
-  @NonNull private final ExoPlayerProvider exoPlayerProvider;
   // TODO: Migrate to stable API, see https://github.com/flutter/flutter/issues/147039.
   @UnstableApi @Nullable protected DefaultTrackSelector trackSelector;
 
@@ -69,10 +66,17 @@ public abstract class VideoPlayer implements VideoPlayerInstanceApi {
       @NonNull ExoPlayerProvider exoPlayerProvider) {
     this.videoPlayerEvents = events;
     this.surfaceProducer = surfaceProducer;
-    this.mediaItem = mediaItem;
-    this.options = options;
-    this.exoPlayerProvider = exoPlayerProvider;
-    exoPlayer = createVideoPlayer();
+    exoPlayer = exoPlayerProvider.get();
+
+    // Try to get the track selector from the ExoPlayer if it was built with one
+    if (exoPlayer.getTrackSelector() instanceof DefaultTrackSelector) {
+      trackSelector = (DefaultTrackSelector) exoPlayer.getTrackSelector();
+    }
+
+    exoPlayer.setMediaItem(mediaItem);
+    exoPlayer.prepare();
+    exoPlayer.addListener(createExoPlayerEventListener(exoPlayer, surfaceProducer));
+    setAudioAttributes(exoPlayer, options.mixWithOthers);
   }
 
   public void setDisposeHandler(@Nullable DisposeHandler handler) {
@@ -82,27 +86,6 @@ public abstract class VideoPlayer implements VideoPlayerInstanceApi {
   @NonNull
   protected abstract ExoPlayerEventListener createExoPlayerEventListener(
       @NonNull ExoPlayer exoPlayer, @Nullable SurfaceProducer surfaceProducer);
-
-  // TODO: Migrate to stable API, see https://github.com/flutter/flutter/issues/147039.
-  @UnstableApi
-  @NonNull
-  protected ExoPlayer createVideoPlayer() {
-    ExoPlayer exoPlayer = exoPlayerProvider.get();
-
-    // Try to get the track selector from the ExoPlayer if it was built with one
-    if (exoPlayer.getTrackSelector() instanceof DefaultTrackSelector) {
-      trackSelector = (DefaultTrackSelector) exoPlayer.getTrackSelector();
-    } else {
-      trackSelector = null;
-    }
-
-    exoPlayer.setMediaItem(mediaItem);
-    exoPlayer.prepare();
-    exoPlayer.addListener(createExoPlayerEventListener(exoPlayer, surfaceProducer));
-    setAudioAttributes(exoPlayer, options.mixWithOthers);
-
-    return exoPlayer;
-  }
 
   private static void setAudioAttributes(ExoPlayer exoPlayer, boolean isMixMode) {
     exoPlayer.setAudioAttributes(
