@@ -15,6 +15,7 @@ import androidx.media3.common.util.UnstableApi;
 import androidx.media3.exoplayer.DefaultRenderersFactory;
 import androidx.media3.exoplayer.ExoPlayer;
 import io.flutter.plugins.videoplayer.ExoPlayerEventListener;
+import io.flutter.plugins.videoplayer.ExoPlayerState;
 import io.flutter.plugins.videoplayer.VideoAsset;
 import io.flutter.plugins.videoplayer.VideoPlayer;
 import io.flutter.plugins.videoplayer.VideoPlayerCallbacks;
@@ -31,6 +32,8 @@ import io.flutter.view.TextureRegistry.SurfaceProducer;
 public final class TextureVideoPlayer extends VideoPlayer implements SurfaceProducer.Callback {
   // True when the ExoPlayer instance has a null surface.
   private boolean needsSurface = true;
+  // Saved state used when the player has been suspended due to surface destruction.
+  @Nullable private ExoPlayerState savedStateDuring;
   /**
    * Creates a texture video player.
    *
@@ -84,6 +87,7 @@ public final class TextureVideoPlayer extends VideoPlayer implements SurfaceProd
     Surface surface = surfaceProducer.getSurface();
     this.exoPlayer.setVideoSurface(surface);
     needsSurface = surface == null;
+    savedStateDuring = null;
   }
 
   @NonNull
@@ -101,9 +105,22 @@ public final class TextureVideoPlayer extends VideoPlayer implements SurfaceProd
 
   @RestrictTo(RestrictTo.Scope.LIBRARY)
   public void onSurfaceAvailable() {
+    // TextureVideoPlayer must always set a surfaceProducer.
+    assert surfaceProducer != null;
+
+    // If the player was previously suspended due to a destroyed surface, recreate it and restore
+    // its state similarly to the forked implementation.
+    if (savedStateDuring != null) {
+      exoPlayer = createVideoPlayer();
+      exoPlayer.setVideoSurface(surfaceProducer.getSurface());
+      savedStateDuring.restore(exoPlayer);
+      savedStateDuring = null;
+      needsSurface = false;
+      return;
+    }
+
+    // Otherwise, this is the regular "surface became available" flow used for initial attachment.
     if (needsSurface) {
-      // TextureVideoPlayer must always set a surfaceProducer.
-      assert surfaceProducer != null;
       exoPlayer.setVideoSurface(surfaceProducer.getSurface());
       needsSurface = false;
     }
@@ -111,7 +128,9 @@ public final class TextureVideoPlayer extends VideoPlayer implements SurfaceProd
 
   @RestrictTo(RestrictTo.Scope.LIBRARY)
   public void onSurfaceCleanup() {
-    exoPlayer.setVideoSurface(null);
+    // Save and release the player similar to the fork's onSurfaceDestroyed behavior.
+    savedStateDuring = ExoPlayerState.save(exoPlayer);
+    exoPlayer.release();
     needsSurface = true;
   }
 
