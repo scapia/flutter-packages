@@ -29,6 +29,13 @@ dev_dependencies:
   mockito: ^5.4.4
   pigeon: ^26.1.5
 
+dependency_overrides:
+  video_player_android:
+    git:
+      url: git@github.com:scapia/flutter-packages.git
+      path: packages/video_player/video_player_android
+      ref: fix/save-player-state
+
 topics:
   - video
   - video-player
